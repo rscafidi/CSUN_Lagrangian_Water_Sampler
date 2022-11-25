@@ -362,7 +362,6 @@ void setup() {
                 }
             }
         }
-        
     #endif
 
     // ================== END CLOCK_SYNC_MODE =========================================================================
@@ -387,10 +386,7 @@ void setup() {
             digitalWrite(pump2, LOW);
             delay(1000);
         }
-        
-        
     #endif
-    
     // =================== END CIRCUIT_DEBUG_MODE ==============================================================================
     
     #ifdef CODE_DEBUG_MODE
@@ -456,8 +452,8 @@ void loop() {
     #endif
 
     /*
-    Per the requirements of pump functionality, pump1 should be active from 10am / 1300
-    until 4pm / 1600.  Pump2 should be active from 10pm / 2200 until 4am / 0400.  This control
+    Per the requirements of pump functionality, pump1 should be active from 10am / 10:00
+    until 4pm / 16:00.  Pump2 should be active from 10pm / 22:00 until 4am / 04:00.  This control
     structure checks the hour and starts the pump if it should be started.  
     */
     if ((now.hour() >= START_HOUR_1) && (now.hour() < STOP_HOUR_1)) {
