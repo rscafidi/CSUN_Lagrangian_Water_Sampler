@@ -77,10 +77,6 @@ const int STOP_HOUR_1 = 16; // 4pm
 const int START_HOUR_2 = 22;  // 10pm
 const int STOP_HOUR_2 = 4; // 4am
 
-// ==================== HELPER VARIABLES ============================================================
-bool pump1Running = false;
-bool pump2Running = false;
-
 // ================== Object Instantiations =========================================================
 
 // Gives a handle for the RTC library, used for the adjust() function
