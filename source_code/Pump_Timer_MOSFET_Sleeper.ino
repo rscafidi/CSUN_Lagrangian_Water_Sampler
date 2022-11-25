@@ -4,19 +4,27 @@ Lagrangian Water Sampler
 This code is written for California Sate University, Northridge.
 This code was tested on the Mini Ultra 8Mhz microcontroller with ATmegaA328P processor.
 It controls two independent 12v pumps on a schedule, using the DS3231 real time clock.
+This code was shipped with electronic schematics and a troubleshooting / maintenance manual.
 
-MiniMOSFET based 12v pump activation using DS3231 Real Time Clock
-Refactored code based on the original sketch by Vincent Moriarty, Date- June 29 2016
+License:
+
+This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 United 
+States License. To view a copy of this license, visit: 
+http://creativecommons.org/licenses/by-sa/3.0/us/ 
+or send a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, 
+California, 94041, USA.
+
+Refactored code based on the original sketch by Vincent Moriarty, dated June 29 2016
 
 Author:  Richard Scafidi
 Date: 27 November 2022
 richard@scafidi.dev
 Compiled with Arduino IDE v2.0.2-nightly-20221112
 
-// This code was shipped with electronic schematics and a troubleshooting / maintenance manual
+
 */
 #include <RTClib.h>                 // Adafruit RTClib library      v2.1.1
-#include <Adafruit_SleepyDog.h>     // Adafruit Sleepydog library   v1.6.3
+#include <Adafruit_SleepyDog.h>     // Adafruit SleepyDog library   v1.6.3
 #include <Wire.h>                   // Standard Wire library
 
 /* =================== CONTROL CONSTANTS (uncomment these to change program behavior) =================
@@ -90,16 +98,27 @@ int pump2 = 5;
 /*
 Below are a set of functions for checking and setting the Oscillator Stop Flag (OSF) bit, the Enable OScillator (EOSC) bit,
 and dealing with sleeping/waking and checking the time for the pumps and activating/deactivating the pumps.
-The OSF bit is set to logical 1 when the real time clock oscillator has stopped for some reason.  This indicates a power failure
+The OSF bit is set to logical 1 when the real time clock oscillator has stopped.  This indicates a power failure or interruption
 on the real time clock, and likely the battery needs to be checked.  The EOSC bit controls whether the oscillator will run when
 the real time clock is powered by battery.  With EOSC set to 1, the clock will NOT progress when on battery only voltage, meaning
 the clock will not keep time.  Both the OSF and EOSC bit must be set to logical 0 in order to persist time between main board power cycling.
 */
 
 /*
-The flashLEDCode function flashes the LED in the mode indicator pattern (5 bursts of 3 rapid flashes).
-This flash indicates to the user that the microcontroller is set to a special mode for either clock sync or circuit debugging, and alerts
-the user that they need to recompile the code with the proper mode variable defined (special modes commented out).
+The flashLEDCode is a helper function that flashes the LED to act as a visual indicator for exceptions.
+LED pattern definitions:
+- Rapid blinking, not stopping
+    The microcontroller has encountered an error state, or the clock oscillator has been interrupted.
+    Both cases need manual intervention to remedy.
+- 5 sets of 3 bursts
+    The microcontroller is in circuit debugging mode or clock sync mode.  Program execution will not continue in these modes.  Code must
+    be recompiled and flashed with the control variables commented out.
+- 20 bursts
+    The pumps are reporting as on during the schedule hours they should be inactive.  Troubleshooting required.
+- Single blink every ~15 seconds
+    The microcontroller is operating normally and the pumps are both disabled.
+- Single blink every ~5 seconds
+    The microcontroller is operating normally and one of the pumps is active.
 */
 void flashLEDCode(int indicatorCycles, int indicatorBursts) {
     
@@ -289,6 +308,8 @@ int getPumpRunningStatus() {
 
 // ====================== END FUNCTION DEFINITIONS ===================================================================
 
+
+
 // ====================== EXECUTION START ============================================================================
 
 // Setup runs every time the board reboots / repowered
@@ -465,7 +486,18 @@ void loop() {
             // Flash the LED for abnormal condition
             flashLEDCode(1, 20);
         }
-        Watchdog.sleep(600000); // sleep for 10 minutes, 600,000 milliseconds
+
+        #ifdef CODE_DEBUG_MODE
+            Serial.println("Sleeping for 8 seconds");
+        #endif
+
+        delay(50);  // small delay is needed before sleep to finish serial prints
+        int sleepMS = Watchdog.sleep(); // maximum sleep for this board is 8 seconds
+        #ifdef CODE_DEBUG_MODE
+            Serial.print("slept for: ");
+            Serial.println(sleepMS, DEC);
+        #endif
+        
     }
 
     // Flash LED once per loop.  On sleep loops, LED will only flash every 10 min
