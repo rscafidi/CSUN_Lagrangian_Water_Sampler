@@ -1,28 +1,41 @@
-// Lagrangian Water Sampler
-// MOSFET based 12v pump activation using DS3231 Real Time Clock
-// Refactored code based on the original sketch by Vincent Moriarty, Date- June 29 2016
 
-// Author:  Richard Scafidi
-// Date: 25 November 2022
-// richard@scafidi.dev
+/*
+Lagrangian Water Sampler
+This code is written for California Sate University, Northridge.
+This code was tested on the Mini Ultra 8Mhz microcontroller with ATmegaA328P processor.
+It controls two independent 12v pumps on a schedule, using the DS3231 real time clock.
+
+MiniMOSFET based 12v pump activation using DS3231 Real Time Clock
+Refactored code based on the original sketch by Vincent Moriarty, Date- June 29 2016
+
+Author:  Richard Scafidi
+Date: 27 November 2022
+richard@scafidi.dev
+Compiled with Arduino IDE v2.0.2-nightly-20221112
+
 // This code was shipped with electronic schematics and a troubleshooting / maintenance manual
-
-#include <RTClib.h>
-#include <Wire.h>
+*/
+#include <RTClib.h>                 // Adafruit RTClib library      v2.1.1
+#include <Adafruit_SleepyDog.h>     // Adafruit Sleepydog library   v1.6.3
+#include <Wire.h>                   // Standard Wire library
 
 /* =================== CONTROL CONSTANTS (uncomment these to change program behavior) =================
 =======================================================================================================
 Defining CODE_DEBUG_MODE will compile additional Serial prints and information
 to aide in the troubleshooting process.  Uncomment this line and recompile 
 */ 
+// *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  
 #define CODE_DEBUG_MODE // UNCOMMENT THIS FOR SERIAL DEBUG MESSAGES
+// *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  
 
 /*
 Defining CIRCUIT_DEBUG_MODE will enter the board into a loop for troubleshooting board circuits.  This mode
 will activate each pin/pump circuit and LED on a short recurring loop, allowing you to use a milti-meter to test the physical
 circuit to ensure the MOSFETs are working correctly, as well as the pins on the board to activate them.
 */
+// *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  
 //#define CIRCUIT_DEBUG_MODE // UNCOMMENT THIS FOR NORMAL OPERATION
+// *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  
 
 /*
 Defining CLOCK_SYNC_MODE will synchronize the clock with the last compiled time, and
@@ -30,9 +43,10 @@ attempt to reset the real time clock DS3231 registries to clear any invalid powe
 WARNING: After syncing clock with CLOCK_SYNC_MODE uncommented, recompile the code again after
 commenting this line out.  This will ensure the registry is only reset once and not every time
 the microcontroller reboots.
-*/ 
+*/
+// *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  
 //#define CLOCK_SYNC_MODE // UNCOMMENT THIS TO SYNC CLOCK AND CLEAR OSCILLATOR REGISTRY FLAGS ** MUST COMMENT BACK OUT AND RECOMPILE AFTER SUCCESSFUL SYNC!
-
+// *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  
 // ==================== END CONTROL CONSTANTS =======================================================
 
 
@@ -50,10 +64,10 @@ the microcontroller reboots.
 // Per the data sheet, when OSF reads 1, the oscillator has been interrupted.  EOSC value of 1 means the
 // oscillator will not run on battery power.
 const int FLAG_NORMAL_STATE = 0;
-const int START_HOUR_1 = 10;
-const int STOP_HOUR_1 = 16;
-const int START_HOUR_2 = 20;
-const int STOP_HOUR_2 = 2;
+const int START_HOUR_1 = 10; // 10am
+const int STOP_HOUR_1 = 16; // 4pm
+const int START_HOUR_2 = 22;  // 10pm
+const int STOP_HOUR_2 = 4; // 4am
 
 // ==================== HELPER VARIABLES ============================================================
 bool pump1Running = false;
@@ -83,11 +97,11 @@ the clock will not keep time.  Both the OSF and EOSC bit must be set to logical 
 */
 
 /*
-The specialModeIndicatorFlash function flashes the LED in the mode indicator pattern (5 bursts of 3 rapid flashes).
+The flashLEDCode function flashes the LED in the mode indicator pattern (5 bursts of 3 rapid flashes).
 This flash indicates to the user that the microcontroller is set to a special mode for either clock sync or circuit debugging, and alerts
 the user that they need to recompile the code with the proper mode variable defined (special modes commented out).
 */
-void specialModeIndicatorFlash(int indicatorCycles, int indicatorBursts) {
+void flashLEDCode(int indicatorCycles, int indicatorBursts) {
     
     for (int i = 0; i < indicatorCycles; ++i) {
         for (int j = 0; j < indicatorBursts; ++j) {
@@ -258,12 +272,19 @@ void stopPump(int pin) {
 }
 
 /*
-getPumpRunningStatus returns the integer corresponding to the pump pin if a pump is running.  Returns 0 if no pump is running.
+getPumpRunningStatus returns the integer corresponding to the pump pin if a pump is running.
+Returns 0 if no pump is running.
+*
 */
 int getPumpRunningStatus() {
     int pumpRunning = 0; // default to 0 / false
+    if (digitalRead(pump1)) {
+        pumpRunning = pump1; // return pin for pump 1 if it is running
+    } else if (digitalRead(pump2)) {
+        pumpRunning = pump2; // return pin for pump 2 if it is running
+    }
 
-    return pumpRunning;
+    return pumpRunning;  //returns false if neither pump is running
 }
 
 // ====================== END FUNCTION DEFINITIONS ===================================================================
@@ -275,10 +296,8 @@ int getPumpRunningStatus() {
 // to call the clock reset/registry clearing if necessary.  setup() also checks the registry flags for the real time clock
 // and enters an infinite loop if it detects that the oscillator has stopped, flashing the external LED for awareness of the user.
 void setup() {
-    #ifdef CODE_DEBUG_MODE
-        Serial.begin(9600);
-    #endif
-
+    
+    Serial.begin(115200);
     Wire.begin();
 
     // initialize pins as outputs
@@ -294,8 +313,8 @@ void setup() {
     // CLOCK_SYNC_MODE only compiles when the variable is defined in constants above.
     #ifdef CLOCK_SYNC_MODE
         while (true) {
-            // Call the specialModeIndicatorFlash() function, which flashes the LED in a special pattern to alert the user we're in a special mode.
-            specialModeIndicatorFlash(5, 3);
+            // Call the flashLEDCode() function, which flashes the LED in a special pattern to alert the user we're in a special mode.
+            flashLEDCode(5, 3);
             Serial.println("CLOCK_SYNC_MODE is active.  Attempting to reset registers.  Click will sync to last compile time.");
             
             #ifdef CODE_DEBUG_MODE
@@ -312,13 +331,13 @@ void setup() {
             if (!OSFresetSuccessful || !EOSCresetSuccessful) {
                 Serial.println("Error setting registries or detecting valid state.  Troubleshoot clock registers.");
                 while (true) {
-                    specialModeIndicatorFlash(1, 100);
+                    flashLEDCode(1, 100);
                 }
             } else {
             // Grab time from computer, last compile time is used.  
             RTC.adjust(DateTime(__DATE__, __TIME__));
                 while(true) {
-                    specialModeIndicatorFlash(5,3);
+                    flashLEDCode(5,3);
                 }
             }
         }
@@ -332,8 +351,8 @@ void setup() {
     // MOSFETs.  Only compiles when the constant is defined above.
     #ifdef CIRCUIT_DEBUG_MODE
         while (true) {
-            // Call the specialModeIndicatorFlash() function, which flashes the LED in a special pattern to alert the user we're in a special mode.
-            specialModeIndicatorFlash(5, 3);
+            // Call the flashLEDCode() function, which flashes the LED in a special pattern to alert the user we're in a special mode.
+            flashLEDCode(5, 3);
 
             //Test pump1 voltage:
             analogWrite(pump1, 210);
@@ -370,7 +389,7 @@ void setup() {
         // WARNING:  This will drian battery since the program will never enter deep sleep.
         //  Clock must be resynced and registers cleared to exit this state!
         while (true) {
-            specialModeIndicatorFlash(1, 100);
+            flashLEDCode(1, 100);
         }
     } else {
         #ifdef CODE_DEBUG_MODE
@@ -399,16 +418,8 @@ void loop() {
 
     DateTime now = RTC.now();
 
-    if ((now.hour() >= START_HOUR_1) && (now.hour() <= STOP_HOUR_1 - 1)) {
-        // Pump1 should be running
-        pump1Running = true;
-        startPump(pump1);
-        #ifdef CODE_DEBUG_MODE
-            Serial.println("Pump 1 should be running.");
-        #endif
-    }
-
-    #ifdef CODE_DEBUG_MODE
+     #ifdef CODE_DEBUG_MODE
+        Serial.print("Current time: ");
         Serial.print(now.year(), DEC);
         Serial.print('/');
         Serial.print(now.month(), DEC);
@@ -421,7 +432,46 @@ void loop() {
         Serial.print(':');
         Serial.print(now.second(), DEC);
         Serial.println();
-        delay(10000);
     #endif
 
+    /*
+    Per the requirements of pump functionality, pump1 should be active from 10am / 1300
+    until 4pm / 1600.  Pump2 should be active from 10pm / 2200 until 4am / 0400.  This control
+    structure checks the hour and starts the pump if it should be started.  
+    */
+    if ((now.hour() >= START_HOUR_1) && (now.hour() < STOP_HOUR_1)) {
+        // Pump1 should be running
+        startPump(pump1);
+        #ifdef CODE_DEBUG_MODE
+            Serial.println("Pump 1 should be running.");
+        #endif
+    } else if ((now.hour() >= START_HOUR_2) || (now.hour() < STOP_HOUR_2)) {
+        // Pump2 should be running
+        startPump(pump2);
+        #ifdef CODE_DEBUG_MODE
+            Serial.println("Pump 2 should be running.");
+        #endif
+    } else {
+        stopPump(pump1);
+        stopPump(pump2);
+        #ifdef CODE_DEBUG_MODE
+            Serial.println("No pumps should be running.");
+        #endif
+        // no pumps should be running, but check just in case...
+        if (getPumpRunningStatus()) {
+            #ifdef CODE_DEBUG_MODE
+                Serial.println("Pump reported running during off hours - troubleshooting required");
+            #endif
+            // Flash the LED for abnormal condition
+            flashLEDCode(1, 20);
+        }
+        Watchdog.sleep(600000); // sleep for 10 minutes, 600,000 milliseconds
+    }
+
+    // Flash LED once per loop.  On sleep loops, LED will only flash every 10 min
+    // While pump is running, LED will flash every 5 seconds.
+    flashLEDCode(1, 1);
+
+    // Brief pause before next loop
+    delay(5000);
 }
