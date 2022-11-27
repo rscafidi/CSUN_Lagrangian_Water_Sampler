@@ -72,10 +72,12 @@ the microcontroller reboots.
 // Per the data sheet, when OSF reads 1, the oscillator has been interrupted.  EOSC value of 1 means the
 // oscillator will not run on battery power.
 const int FLAG_NORMAL_STATE = 0;
-const int START_HOUR_1 = 10; // 10am
+const int START_HOUR_1 = 11; // 10am
 const int STOP_HOUR_1 = 16; // 4pm
 const int START_HOUR_2 = 22;  // 10pm
 const int STOP_HOUR_2 = 4; // 4am
+const int SLEEP_SECONDS = 600; // 10 minutes of sleep, adjust to the time you want the board to sleep for when pumps are off.
+const int MAX_SLEEP_TIME_ALLOWED_BY_CONTROLLER = 8; // do not change this, it is a limitation of the microcontroller
 
 // ================== Object Instantiations =========================================================
 
@@ -480,13 +482,19 @@ void loop() {
         }
 
         #ifdef CODE_DEBUG_MODE
-            Serial.println("Sleeping for 8 seconds");
+            Serial.print("Sleeping for ");
+            Serial.print(SLEEP_SECONDS);
+            Serial.print(" seconds");
         #endif
 
         delay(50);  // small delay is needed before sleep to finish serial prints
-        int sleepMS = Watchdog.sleep(); // maximum sleep for this board is 8 seconds
+        int sleepMS = 0; // for serial prints to see how long slept
+        for (int i = 0; i <  SLEEP_SECONDS / MAX_SLEEP_TIME_ALLOWED_BY_CONTROLLER; ++i) {
+             sleepMS += Watchdog.sleep(); // maximum sleep for this board is 8 seconds, so keep sleeping on a loop
+        }
+        
         #ifdef CODE_DEBUG_MODE
-            Serial.print("slept for: ");
+            Serial.print("slept for (milliseconds): ");
             Serial.println(sleepMS, DEC);
         #endif
         
