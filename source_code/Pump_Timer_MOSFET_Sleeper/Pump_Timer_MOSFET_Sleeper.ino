@@ -484,17 +484,26 @@ void loop() {
         #ifdef CODE_DEBUG_MODE
             Serial.print("Sleeping for ");
             Serial.print(SLEEP_SECONDS);
-            Serial.print(" seconds");
+            Serial.println(" seconds.");
         #endif
 
-        delay(50);  // small delay is needed before sleep to finish serial prints
+        delay(10);  // small delay is needed before sleep to finish serial prints
         int sleepMS = 0; // for serial prints to see how long slept
         for (int i = 0; i <  SLEEP_SECONDS / MAX_SLEEP_TIME_ALLOWED_BY_CONTROLLER; ++i) {
-             sleepMS += Watchdog.sleep(); // maximum sleep for this board is 8 seconds, so keep sleeping on a loop
+            sleepMS += (Watchdog.sleep() / 1000); // maximum sleep for this board is 8 seconds, so keep sleeping on a loop
+            
+            
+            #ifdef CODE_DEBUG_MODE
+                delay(10);
+                Serial.print("Been asleep for ");
+                Serial.print(sleepMS);
+                Serial.println(" seconds.");
+                delay(10);
+            #endif
         }
         
         #ifdef CODE_DEBUG_MODE
-            Serial.print("slept for (milliseconds): ");
+            Serial.print("slept for total: ");
             Serial.println(sleepMS, DEC);
         #endif
         
