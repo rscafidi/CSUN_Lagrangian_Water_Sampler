@@ -33,7 +33,7 @@ Defining CODE_DEBUG_MODE will compile additional Serial prints and information
 to aide in the troubleshooting process.  Uncomment this line and recompile 
 */ 
 // *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  
-#define CODE_DEBUG_MODE // UNCOMMENT THIS FOR SERIAL DEBUG MESSAGES
+//#define CODE_DEBUG_MODE // UNCOMMENT THIS FOR SERIAL DEBUG MESSAGES
 // *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  
 
 /*
@@ -72,7 +72,7 @@ the microcontroller reboots.
 // Per the data sheet, when OSF reads 1, the oscillator has been interrupted.  EOSC value of 1 means the
 // oscillator will not run on battery power.
 const int FLAG_NORMAL_STATE = 0;
-const int START_HOUR_1 = 11; // 10am
+const int START_HOUR_1 = 10; // 10am
 const int STOP_HOUR_1 = 16; // 4pm
 const int START_HOUR_2 = 22;  // 10pm
 const int STOP_HOUR_2 = 4; // 4am
@@ -325,6 +325,7 @@ void setup() {
     pinMode(pump2, OUTPUT);
 
     #ifdef CODE_DEBUG_MODE
+        flashLEDCode(5, 3);
         Serial.println("Execution Start from setup() function...");
     #endif
 
