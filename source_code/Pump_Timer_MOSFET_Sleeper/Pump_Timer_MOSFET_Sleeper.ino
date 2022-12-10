@@ -356,6 +356,7 @@ void setup() {
             } else {
             // Grab time from computer, last compile time is used.  
             RTC.adjust(DateTime(__DATE__, __TIME__));
+                Serial.println("Registers reset, reflash code with CLOCK_SYNC_MODE off!");            
                 while(true) {
                     flashLEDCode(5,3);
                 }
