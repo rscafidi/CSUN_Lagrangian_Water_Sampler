@@ -42,7 +42,7 @@ will activate each pin/pump circuit and LED on a short recurring loop, allowing 
 circuit to ensure the MOSFETs are working correctly, as well as the pins on the board to activate them.
 */
 // *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  
-//#define CIRCUIT_DEBUG_MODE // UNCOMMENT THIS FOR NORMAL OPERATION
+//#define CIRCUIT_DEBUG_MODE // UNCOMMENT THIS FOR CIRCUIT TROUBLESHOOTING
 // *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  
 
 /*
