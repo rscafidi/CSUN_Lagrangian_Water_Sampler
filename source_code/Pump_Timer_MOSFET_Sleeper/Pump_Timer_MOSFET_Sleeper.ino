@@ -113,7 +113,7 @@ LED pattern definitions:
     be recompiled and flashed with the control variables commented out.
 - 20 bursts
     The pumps are reporting as on during the schedule hours they should be inactive.  Troubleshooting required.
-- Single blink every ~15 seconds
+- Single blink every ~10 minutes, seemingly no blink (depending on SLEEP_SECONDS constant)
     The microcontroller is operating normally and the pumps are both disabled.
 - Single blink every ~5 seconds
     The microcontroller is operating normally and one of the pumps is active.
